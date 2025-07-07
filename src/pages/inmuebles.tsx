@@ -10,6 +10,9 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Inmueble {
   id?: string;
@@ -40,6 +43,72 @@ const defaultInmueble: Inmueble = {
   matriculaenergia: "",
   arrendador: "",
   participacion: "",
+};
+
+// Funciones de exportación
+const exportToExcel = (data: Inmueble[], filename: string = "inmuebles") => {
+  // Preparar los datos para Excel (excluir el id)
+  const excelData = data.map(({ id, ...inmueble }) => inmueble);
+
+  // Crear el workbook y worksheet
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inmuebles");
+
+  // Generar y descargar el archivo
+  XLSX.writeFile(wb, `${filename}.xlsx`);
+};
+
+const exportToPDF = (data: Inmueble[], filename: string = "inmuebles") => {
+  // Crear el documento PDF
+  const doc = new jsPDF();
+
+  // Configurar el título
+  doc.setFontSize(18);
+  doc.text("Reporte de Inmuebles", 14, 22);
+  doc.setFontSize(12);
+  doc.text(`Generado el: ${new Date().toLocaleDateString("es-ES")}`, 14, 32);
+
+  // Preparar los datos para la tabla
+  const tableData = data.map(({ id, ...inmueble }) => Object.values(inmueble));
+
+  // Configurar las columnas
+  const columns = [
+    "Contrato",
+    "Área Predio",
+    "Dirección",
+    "Estrato",
+    "Avalúo Anterior",
+    "Avalúo Vigente",
+    "Ficha Catastral",
+    "Matrícula",
+    "Matrícula Agua",
+    "Matrícula Energía",
+    "Arrendador",
+    "Participación",
+  ];
+
+  // Generar la tabla usando autoTable
+  autoTable(doc, {
+    head: [columns],
+    body: tableData,
+    startY: 40,
+    styles: {
+      fontSize: 6,
+      cellPadding: 1,
+    },
+    headStyles: {
+      fillColor: [59, 130, 246], // Azul
+      textColor: 255,
+      fontStyle: "bold",
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245],
+    },
+  });
+
+  // Guardar el PDF
+  doc.save(`${filename}.pdf`);
 };
 
 const InmueblesTable: React.FC = () => {
@@ -121,18 +190,36 @@ const InmueblesTable: React.FC = () => {
     <div className="p-4 text-black min-h-screen">
       <h2 className="text-2xl font-bold mb-6">Gestión de Inmuebles</h2>
 
-      {/* Barra de búsqueda */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por cualquier campo..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="w-full border rounded p-2"
-        />
+      {/* Barra de búsqueda y botones de exportación */}
+      <div className="mb-4 flex flex-col md:flex-row gap-4 items-center">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Buscar por cualquier campo..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full border rounded p-2"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => exportToExcel(filteredRecords, "inmuebles")}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            disabled={filteredRecords.length === 0}
+          >
+            Exportar Excel
+          </button>
+          <button
+            onClick={() => exportToPDF(filteredRecords, "inmuebles")}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+            disabled={filteredRecords.length === 0}
+          >
+            Exportar PDF
+          </button>
+        </div>
       </div>
 
       {/* Formulario */}

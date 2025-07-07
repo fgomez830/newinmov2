@@ -9,14 +9,21 @@ import { v4 } from 'uuid'
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-     apiKey: "AIzaSyDtCkksbpVRp4xoQVFG1LJUxgpEQsXkz0c",
-  authDomain: "newinmobiliaria-c207f.firebaseapp.com",
-  projectId: "newinmobiliaria-c207f",
-  storageBucket: "newinmobiliaria-c207f.firebasestorage.app",
-  messagingSenderId: "577408488764",
-  appId: "1:577408488764:web:59283af902890cd4f47a39",
-  measurementId: "G-2C1HFC2KTQ"
-};
+        apiKey: "AIzaSyDtCkksbpVRp4xoQVFG1LJUxgpEQsXkz0c",
+ authDomain: "newinmobiliaria-c207f.firebaseapp.com",
+projectId: "newinmobiliaria-c207f",
+storageBucket: "newinmobiliaria-c207f.firebaseapp.com", // 🔥 CORRECTO
+messagingSenderId: "577408488764",
+appId: "1:577408488764:web:59283af902890cd4f47a39",
+measurementId: "G-2C1HFC2KTQ"};
+// const firebaseConfig = {
+//   apiKey: "AIzaSyA4J8kdynv0nEqkl8nmpl_HOwVKXV1cx5w",
+//   authDomain: "inmobiliaria-d4b5d.firebaseapp.com",
+//   projectId: "inmobiliaria-d4b5d",
+//   storageBucket: "inmobiliaria-d4b5d.appspot.com",
+//   messagingSenderId: "555047143209",
+//   appId: "1:555047143209:web:b66878ba63d3c694439938"
+// };
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);

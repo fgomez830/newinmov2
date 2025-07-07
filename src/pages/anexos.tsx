@@ -11,6 +11,9 @@ import {
   doc,
 } from "firebase/firestore";
 import { uploadFile } from "../config/firebase"; // Asegúrate de que esta función retorna la URL pública
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Anexo {
   id?: string;
@@ -23,6 +26,66 @@ const defaultAnexo: Anexo = {
   contrato: "",
   nombre: "",
   url: "",
+};
+
+// Funciones de exportación
+const exportToExcel = (data: Anexo[], filename: string = "anexos") => {
+  // Preparar los datos para Excel (excluir el id)
+  const excelData = data.map(({ id, ...anexo }) => ({
+    ...anexo,
+    url: anexo.url || "Sin archivo",
+  }));
+
+  // Crear el workbook y worksheet
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Anexos");
+
+  // Generar y descargar el archivo
+  XLSX.writeFile(wb, `${filename}.xlsx`);
+};
+
+const exportToPDF = (data: Anexo[], filename: string = "anexos") => {
+  // Crear el documento PDF
+  const doc = new jsPDF();
+
+  // Configurar el título
+  doc.setFontSize(18);
+  doc.text("Reporte de Anexos", 14, 22);
+  doc.setFontSize(12);
+  doc.text(`Generado el: ${new Date().toLocaleDateString("es-ES")}`, 14, 32);
+
+  // Preparar los datos para la tabla
+  const tableData = data.map(({ id, ...anexo }) => [
+    anexo.contrato,
+    anexo.nombre,
+    anexo.url || "Sin archivo",
+  ]);
+
+  // Configurar las columnas
+  const columns = ["Contrato", "Nombre", "URL del Archivo"];
+
+  // Generar la tabla usando autoTable
+  autoTable(doc, {
+    head: [columns],
+    body: tableData,
+    startY: 40,
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [59, 130, 246], // Azul
+      textColor: 255,
+      fontStyle: "bold",
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245],
+    },
+  });
+
+  // Guardar el PDF
+  doc.save(`${filename}.pdf`);
 };
 
 const AnexosTable: React.FC = () => {
@@ -39,13 +102,23 @@ const AnexosTable: React.FC = () => {
 
   useEffect(() => {
     const q = query(collection(db, "anexos"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const docs: Anexo[] = [];
-      querySnapshot.forEach((docSnap) => {
-        docs.push({ ...(docSnap.data() as Anexo), id: docSnap.id });
-      });
-      setRecords(docs);
-    });
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const docs: Anexo[] = [];
+        querySnapshot.forEach((docSnap) => {
+          docs.push({ ...(docSnap.data() as Anexo), id: docSnap.id });
+          console.log("Anexo data:", docSnap.data());
+        });
+        console.log("Anexos:", docs);
+        setRecords(docs);
+      },
+      (error) => {
+        console.error("Error al escuchar los anexos:", error);
+      }
+    );
+
     return () => unsubscribe();
   }, []);
 
@@ -117,18 +190,36 @@ const AnexosTable: React.FC = () => {
     <div className="p-4 text-black min-h-screen">
       <h2 className="text-2xl font-bold mb-6">Gestión de Anexos</h2>
 
-      {/* Búsqueda */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por cualquier campo..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="w-full border rounded p-2"
-        />
+      {/* Búsqueda y botones de exportación */}
+      <div className="mb-4 flex flex-col md:flex-row gap-4 items-center">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Buscar por cualquier campo..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full border rounded p-2"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => exportToExcel(filteredRecords, "anexos")}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            disabled={filteredRecords.length === 0}
+          >
+            Exportar Excel
+          </button>
+          <button
+            onClick={() => exportToPDF(filteredRecords, "anexos")}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+            disabled={filteredRecords.length === 0}
+          >
+            Exportar PDF
+          </button>
+        </div>
       </div>
 
       {/* Formulario */}
